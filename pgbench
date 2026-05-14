@@ -12,6 +12,7 @@ import collections
 import datetime
 import glob
 import html
+import importlib.metadata
 import json
 import math
 import os.path
@@ -353,14 +354,33 @@ def format_report(data, target_file):
 
 
 BENCHMARKS = [
-    'python-aiopg',
-    'python-aiopg-tuples',
-    'python-asyncpg',
-    'python-psqlpy',
-    'python-psycopg2',
-    'python-psycopg3',
-    'python-psycopg3-async',
+    'aiopg',
+    'aiopg-tuples',
+    'asyncpg',
+    'psqlpy',
+    'psycopg2',
+    'psycopg3',
+    'psycopg3-async',
 ]
+
+# Maps benchmark driver name → installed distribution name for version lookup.
+DRIVER_PACKAGE = {
+    'aiopg': 'aiopg',
+    'aiopg-tuples': 'aiopg',
+    'asyncpg': 'asyncpg',
+    'psqlpy': 'psqlpy',
+    'psycopg2': 'psycopg2-binary',
+    'psycopg3': 'psycopg',
+    'psycopg3-async': 'psycopg',
+}
+
+
+def _driver_version(driver):
+    pkg = DRIVER_PACKAGE.get(driver, driver)
+    try:
+        return importlib.metadata.version(pkg)
+    except importlib.metadata.PackageNotFoundError:
+        return '?'
 
 
 def run_benchmarks(args, variations, pghost, pgport, pguser):
@@ -370,6 +390,7 @@ def run_benchmarks(args, variations, pghost, pgport, pguser):
         benchmarks_to_run = [re.compile(re.escape(b)) for b in BENCHMARKS]
 
     mydir = os.path.dirname(os.path.realpath(__file__))
+    runner = os.path.join(mydir, 'pgbench_python')
 
     benchmarks_data = []
 
@@ -377,13 +398,13 @@ def run_benchmarks(args, variations, pghost, pgport, pguser):
         if not any(b.match(benchmark) for b in benchmarks_to_run):
             continue
 
-        msg = 'Running {} benchmarks...'.format(benchmark)
+        version = _driver_version(benchmark)
+        display_name = '{} {}'.format(benchmark, version)
+
+        msg = 'Running {} benchmarks...'.format(display_name)
         print(msg)
         print('=' * len(msg))
         print()
-
-        platform, _, driver = benchmark.partition('-')
-        runner = os.path.join(mydir, 'pgbench_{}'.format(platform))
 
         runner_args = {
             'warmup-time': args.warmup_time,
@@ -399,7 +420,7 @@ def run_benchmarks(args, variations, pghost, pgport, pguser):
                            for k, v in runner_args.items()]
 
         benchmark_data = {
-            'name': benchmark,
+            'name': display_name,
             'variations': [],
             'mean': {}
         }
@@ -412,7 +433,7 @@ def run_benchmarks(args, variations, pghost, pgport, pguser):
             print()
             cmdline = [runner] + runner_switches + \
                       ['--concurrency={}'.format(variation['concurrency'])] + \
-                      [driver, variation['queryfile']]
+                      [benchmark, variation['queryfile']]
             print(' '.join(cmdline))
 
             runner_proc = subprocess.run(
