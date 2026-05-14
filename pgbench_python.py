@@ -13,6 +13,7 @@ import csv
 import io
 import itertools
 import json
+import os
 import re
 import sys
 import time
@@ -21,6 +22,7 @@ from concurrent import futures
 import aiopg
 import asyncpg
 import numpy as np
+import psqlpy
 import psycopg
 import psycopg2
 import psycopg2.extras
@@ -197,6 +199,46 @@ async def async_psycopg_copy(conn, query, args):
         return cur.rowcount
 
 
+class _PsqlpyConn:
+    # psqlpy's Connection.close() is sync; this adapts it to the async interface
+    # expected by the runner's teardown loop.
+    __slots__ = ('_conn', '_pool')
+
+    def __init__(self, conn, pool):
+        self._conn = conn
+        self._pool = pool
+
+    async def close(self):
+        self._conn.close()
+        self._pool.close()
+
+
+async def psqlpy_connect(args):
+    pool = psqlpy.ConnectionPool(
+        host=args.pghost,
+        port=args.pgport,
+        username=args.pguser,
+        password=os.environ.get('PGPASSWORD', ''),
+        db_name='postgres',
+        max_db_pool_size=2,
+    )
+    conn = await pool.connection()
+    return _PsqlpyConn(conn, pool)
+
+
+async def psqlpy_execute(conn, query, args):
+    result = await conn._conn.execute(query, args or [])
+    try:
+        return len(result.result())
+    except psqlpy.exceptions.RustToPyValueMappingError:
+        sys.exit(3)
+
+
+async def psqlpy_executemany(conn, query, args):
+    await conn._conn.execute_many(query, [list(row) for row in args])
+    return len(args)
+
+
 async def worker(executor, eargs, start, duration, timeout):
     queries = 0
     rows = 0
@@ -213,7 +255,7 @@ async def worker(executor, eargs, start, duration, timeout):
             max_latency = req_time
         if req_time < min_latency:
             min_latency = req_time
-        latency_stats[req_time] += 1
+        latency_stats[min(req_time, len(latency_stats) - 1)] += 1
         queries += 1
 
     return queries, rows, latency_stats, min_latency, max_latency
@@ -235,7 +277,7 @@ def sync_worker(executor, eargs, start, duration, timeout):
             max_latency = req_time
         if req_time < min_latency:
             min_latency = req_time
-        latency_stats[req_time] += 1
+        latency_stats[min(req_time, len(latency_stats) - 1)] += 1
         queries += 1
 
     return queries, rows, latency_stats, min_latency, max_latency
@@ -422,6 +464,7 @@ if __name__ == '__main__':
             'aiopg',
             'aiopg-tuples',
             'asyncpg',
+            'psqlpy',
             'psycopg2',
             'psycopg3',
             'psycopg3-async',
@@ -501,8 +544,16 @@ if __name__ == '__main__':
         )
         is_async = True
         arg_format = 'python'
+    elif args.driver == 'psqlpy':
+        connector, executor, batch_executor = \
+            psqlpy_connect, psqlpy_execute, psqlpy_executemany
+        is_async = True
+        arg_format = 'native'
     else:
         raise ValueError('unexpected driver: {!r}'.format(args.driver))
+
+    if query.startswith('COPY ') and copy_executor is None:
+        sys.exit(3)
 
     runner_coro = runner(args, connector, executor, copy_executor,
                          batch_executor, is_async,

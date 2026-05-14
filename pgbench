@@ -356,6 +356,7 @@ BENCHMARKS = [
     'python-aiopg',
     'python-aiopg-tuples',
     'python-asyncpg',
+    'python-psqlpy',
     'python-psycopg2',
     'python-psycopg3',
     'python-psycopg3-async',
