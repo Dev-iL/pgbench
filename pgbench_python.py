@@ -258,7 +258,7 @@ async def runner(args, connector, executor, copy_executor, batch_executor,
             raise RuntimeError('COPY is not supported for {}'.format(executor))
         executor = copy_executor
 
-        match = re.match('COPY (\w+)\s*\(\s*((?:\w+)(?:,\s*\w+)*)\s*\)', query)
+        match = re.match(r'COPY (\w+)\s*\(\s*((?:\w+)(?:,\s*\w+)*)\s*\)', query)
         if not match:
             raise RuntimeError('could not parse COPY query')
 
@@ -390,9 +390,6 @@ def die(msg):
 
 
 if __name__ == '__main__':
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    loop = asyncio.get_event_loop()
-
     parser = argparse.ArgumentParser(
         description='async pg driver benchmark [concurrent]')
     parser.add_argument(
@@ -510,4 +507,4 @@ if __name__ == '__main__':
     runner_coro = runner(args, connector, executor, copy_executor,
                          batch_executor, is_async,
                          arg_format, query, query_args, setup, teardown)
-    loop.run_until_complete(runner_coro)
+    uvloop.run(runner_coro)
