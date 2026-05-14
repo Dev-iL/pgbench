@@ -353,14 +353,12 @@ def format_report(data, target_file):
 
 
 BENCHMARKS = [
-    'golang-libpq',
-    'golang-pgx',
     'python-aiopg',
     'python-aiopg-tuples',
     'python-asyncpg',
+    'python-psycopg2',
+    'python-psycopg3',
     'python-psycopg3-async',
-    'nodejs-pg-js',
-    'nodejs-ts-postgres'
 ]
 
 
