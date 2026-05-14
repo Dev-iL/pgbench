@@ -5,9 +5,11 @@
 .DS_Store
 /build
 __pycache__/
-/*.egg
-/*.egg-info
+*.egg
+*.egg-info
 /dist
 /.cache
 /.vscode
 docs/_build
+/.venv
+/venv

@@ -21,7 +21,6 @@ from concurrent import futures
 import aiopg
 import asyncpg
 import numpy as np
-import postgresql
 import psycopg
 import psycopg2
 import psycopg2.extras
@@ -94,17 +93,6 @@ def psycopg_executemany(conn, query, args):
     with conn.cursor() as cur:
         cur.executemany(query, args)
     return len(args)
-
-
-def pypostgresql_connect(args):
-    conn = postgresql.open(user=args.pguser, host=args.pghost,
-                           port=args.pgport)
-    return conn
-
-
-def pypostgresql_execute(conn, query, args):
-    stmt = conn.prepare(query)
-    return len(list(stmt.rows(*args)))
 
 
 async def aiopg_connect(args):
@@ -440,7 +428,6 @@ if __name__ == '__main__':
             'psycopg2',
             'psycopg3',
             'psycopg3-async',
-            'postgresql'
         ],
     )
     parser.add_argument(
@@ -517,10 +504,6 @@ if __name__ == '__main__':
         )
         is_async = True
         arg_format = 'python'
-    elif args.driver == 'postgresql':
-        connector, executor = pypostgresql_connect, pypostgresql_execute
-        is_async = False
-        arg_format = 'native'
     else:
         raise ValueError('unexpected driver: {!r}'.format(args.driver))
 
