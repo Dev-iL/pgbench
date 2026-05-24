@@ -227,16 +227,22 @@ async def psqlpy_connect(args):
 
 
 async def psqlpy_execute(conn, query, args):
-    result = await conn._conn.execute(query, args or [])
-    try:
-        return len(result.result())
-    except psqlpy.exceptions.RustToPyValueMappingError:
-        sys.exit(3)
+    result = await conn._conn.execute(query, args or None)
+    return len(result.result(as_tuple=True))
 
 
 async def psqlpy_executemany(conn, query, args):
     await conn._conn.execute_many(query, [list(row) for row in args])
     return len(args)
+
+
+async def psqlpy_copy(conn, query, args):
+    rows, copy = args[:2]
+    return await conn._conn.copy_records_to_table(
+        table_name=copy['table'],
+        columns=copy['columns'],
+        records=rows,
+    )
 
 
 async def worker(executor, eargs, start, duration, timeout):
@@ -545,8 +551,8 @@ if __name__ == '__main__':
         is_async = True
         arg_format = 'python'
     elif args.driver == 'psqlpy':
-        connector, executor, batch_executor = \
-            psqlpy_connect, psqlpy_execute, psqlpy_executemany
+        connector, executor, copy_executor, batch_executor = \
+            psqlpy_connect, psqlpy_execute, psqlpy_copy, psqlpy_executemany
         is_async = True
         arg_format = 'native'
     else:
