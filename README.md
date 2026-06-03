@@ -6,12 +6,15 @@ Benchmarks for Python PostgreSQL client drivers, measuring throughput and latenc
 
 | Benchmark name | Library | Mode |
 |---|---|---|
-| `python-asyncpg` | [asyncpg](https://github.com/MagicStack/asyncpg) | async |
-| `python-aiopg` | [aiopg](https://github.com/aio-libs/aiopg) | async (dict rows) |
-| `python-aiopg-tuples` | [aiopg](https://github.com/aio-libs/aiopg) | async (tuple rows) |
-| `python-psycopg3` | [psycopg](https://www.psycopg.org/) v3 | sync |
-| `python-psycopg3-async` | [psycopg](https://www.psycopg.org/) v3 | async |
-| `python-psycopg2` | [psycopg2](https://www.psycopg.org/docs/) | sync (thread pool) |
+| `asyncpg` | [asyncpg](https://github.com/MagicStack/asyncpg) | async |
+| `aiopg` | [aiopg](https://github.com/aio-libs/aiopg) | async (dict rows) |
+| `aiopg-tuples` | [aiopg](https://github.com/aio-libs/aiopg) | async (tuple rows) |
+| `psqlpy` | [psqlpy](https://github.com/psqlpy-python/psqlpy) | async (Rust-based) |
+| `psycopg3` | [psycopg](https://www.psycopg.org/) v3 | sync |
+| `psycopg3-async` | [psycopg](https://www.psycopg.org/) v3 | async |
+| `psycopg2` | [psycopg2](https://www.psycopg.org/docs/) | sync (thread pool) |
+
+The installed library version is recorded alongside each benchmark name in the results.
 
 ## Queries
 
@@ -47,10 +50,10 @@ uv sync
 ./pgbench [OPTIONS] [benchmark ...]
 ```
 
-With no benchmark arguments all six drivers are run. Pass one or more names to run a subset:
+With no benchmark arguments all seven drivers are run. Pass one or more names to run a subset:
 
 ```sh
-./pgbench python-asyncpg python-psycopg3-async
+./pgbench asyncpg psycopg3-async
 ```
 
 Key options:
@@ -72,7 +75,7 @@ Key options:
 ```sh
 ./pgbench --concurrency-levels=1,10,50 --duration=60 \
           --save-html=results.html \
-          python-asyncpg python-psycopg3-async
+          asyncpg psqlpy psycopg3-async
 ```
 
 ## Low-level runner
@@ -83,4 +86,4 @@ Key options:
 ./pgbench_python [OPTIONS] <driver> <queryfile>
 ```
 
-Drivers: `asyncpg`, `aiopg`, `aiopg-tuples`, `psycopg3`, `psycopg3-async`, `psycopg2`
+Drivers: `asyncpg`, `aiopg`, `aiopg-tuples`, `psqlpy`, `psycopg3`, `psycopg3-async`, `psycopg2`
