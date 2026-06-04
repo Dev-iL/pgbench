@@ -7,6 +7,7 @@ Benchmarks for Python PostgreSQL client drivers, measuring throughput and latenc
 | Benchmark name | Library | Mode |
 |---|---|---|
 | `asyncpg` | [asyncpg](https://github.com/MagicStack/asyncpg) | async |
+| `asyncpg-no-prepare` | [asyncpg](https://github.com/MagicStack/asyncpg) | async (prepared statement cache disabled) |
 | `aiopg` | [aiopg](https://github.com/aio-libs/aiopg) | async (dict rows) |
 | `aiopg-tuples` | [aiopg](https://github.com/aio-libs/aiopg) | async (tuple rows) |
 | `psqlpy` | [psqlpy](https://github.com/psqlpy-python/psqlpy) | async (Rust-based) |
@@ -50,7 +51,7 @@ uv sync
 ./pgbench [OPTIONS] [benchmark ...]
 ```
 
-With no benchmark arguments all seven drivers are run. Pass one or more names to run a subset:
+With no benchmark arguments all drivers are run. Pass one or more names to run a subset:
 
 ```sh
 ./pgbench asyncpg psycopg3-async
@@ -86,4 +87,4 @@ Key options:
 ./pgbench_python [OPTIONS] <driver> <queryfile>
 ```
 
-Drivers: `asyncpg`, `aiopg`, `aiopg-tuples`, `psqlpy`, `psycopg3`, `psycopg3-async`, `psycopg2`
+Drivers: `asyncpg`, `asyncpg-no-prepare`, `aiopg`, `aiopg-tuples`, `psqlpy`, `psycopg3`, `psycopg3-async`, `psycopg2`

@@ -149,6 +149,15 @@ async def asyncpg_connect(args):
     return conn
 
 
+async def asyncpg_no_prepare_connect(args):
+    # statement_cache_size=0 disables asyncpg's prepared statement cache, so
+    # each query is parsed anew rather than reusing a server-side prepared
+    # statement (the mode required behind transaction-pooling PgBouncer).
+    conn = await asyncpg.connect(user=args.pguser, host=args.pghost,
+                                 port=args.pgport, statement_cache_size=0)
+    return conn
+
+
 async def async_psycopg_connect(args):
     conn = await psycopg.AsyncConnection.connect(
         user=args.pguser, host=args.pghost, port=args.pgport)
@@ -470,6 +479,7 @@ if __name__ == '__main__':
             'aiopg',
             'aiopg-tuples',
             'asyncpg',
+            'asyncpg-no-prepare',
             'psqlpy',
             'psycopg2',
             'psycopg3',
@@ -529,6 +539,13 @@ if __name__ == '__main__':
     elif args.driver == 'asyncpg':
         connector, executor, copy_executor, batch_executor = \
             asyncpg_connect, asyncpg_execute, asyncpg_copy, asyncpg_executemany
+        is_async = True
+        arg_format = 'native'
+    elif args.driver == 'asyncpg-no-prepare':
+        connector, executor, copy_executor, batch_executor = (
+            asyncpg_no_prepare_connect, asyncpg_execute,
+            asyncpg_copy, asyncpg_executemany,
+        )
         is_async = True
         arg_format = 'native'
     elif args.driver == 'psycopg2':
