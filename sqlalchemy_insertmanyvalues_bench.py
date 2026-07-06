@@ -89,9 +89,13 @@ def run_benchmark(driver, args):
     with engine.begin() as conn:
         conn.execute(table.delete())
         start = time.monotonic()
-        # A single Core insert() executed with a list of dicts triggers SQLAlchemy's real
-        # insertmanyvalues chunking -- the same path Airflow's own ORM writes go through.
-        conn.execute(insert(table), rows)
+        # A RETURNING insert executed with a list of dicts triggers SQLAlchemy's real
+        # insertmanyvalues chunking on both dialects -- the same path Airflow's own ORM
+        # writes (which return generated PKs) go through. Without RETURNING, psycopg's
+        # (v3) dialect skips insertmanyvalues entirely and falls back to the driver's
+        # native executemany, bypassing insertmanyvalues_page_size -- so RETURNING is
+        # required here for a fair comparison, not just an incidental detail.
+        conn.execute(insert(table).returning(table.c.a), rows)
         elapsed = time.monotonic() - start
 
     with engine.begin() as conn:
