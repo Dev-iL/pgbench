@@ -89,11 +89,13 @@ def psycopg_copy(conn, query, args):
 def psycopg2_executemany(conn, query, args):
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     cur.executemany(query, args)
+    conn.commit()
     return len(args)
 
 def psycopg_executemany(conn, query, args):
     with conn.cursor() as cur:
         cur.executemany(query, args)
+    conn.commit()
     return len(args)
 
 
@@ -182,6 +184,7 @@ async def asyncpg_executemany(conn, query, args):
 async def async_psycopg_executemany(conn, query, args):
     async with conn.cursor() as cur:
         await cur.executemany(query, args)
+    await conn.commit()
     return len(args)
 
 
